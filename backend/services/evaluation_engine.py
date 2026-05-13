@@ -92,7 +92,7 @@ def evaluate_model(processed_path, models_dir, target, eval_dir):
 
         # Actual vs Predicted
         plt.figure(figsize=(8, 6))
-        sns.scatterplot(x=y_test, y=y_pred)
+        sns.scatterplot(x=y_test, y=y_pred, color="orange")
         plt.xlabel("Actual")
         plt.ylabel("Predicted")
         plt.title("Actual vs Predicted")
@@ -104,7 +104,7 @@ def evaluate_model(processed_path, models_dir, target, eval_dir):
         # Plot: Residuals
         residuals = y_test - y_pred
         plt.figure(figsize=(8, 6))
-        sns.scatterplot(x=y_pred, y=residuals)
+        sns.scatterplot(x=y_pred, y=residuals, color="orange")
         plt.axhline(0, color="red")
         plt.xlabel("Predicted")
         plt.ylabel("Residuals")
@@ -115,7 +115,7 @@ def evaluate_model(processed_path, models_dir, target, eval_dir):
 
         # Plot: Error Distribution
         plt.figure(figsize=(8, 6))
-        sns.histplot(residuals, kde=True)
+        sns.histplot(residuals, kde=True, color="orange")
         plt.title("Error Distribution")
         path3 = os.path.join(eval_dir, "error_distribution.png")
         plt.savefig(path3, bbox_inches="tight")
@@ -141,7 +141,7 @@ def evaluate_model(processed_path, models_dir, target, eval_dir):
 
         # Confusion Matrix
         plt.figure(figsize=(8, 6))
-        sns.heatmap(confusion_matrix(y_test, y_pred), annot=True, cmap="Blues")
+        sns.heatmap(confusion_matrix(y_test, y_pred), annot=True, cmap="Oranges")
         plt.title("Confusion Matrix")
         path1 = os.path.join(eval_dir, "confusion_matrix.png")
         plt.savefig(path1, bbox_inches="tight")

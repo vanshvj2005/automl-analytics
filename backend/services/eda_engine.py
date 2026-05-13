@@ -47,7 +47,7 @@ def generate_eda(df, save_dir, summary_path):
     for col in numeric_cols:
         try:
             plt.figure(figsize=(7, 5))
-            sns.histplot(df[col], kde=True)
+            sns.histplot(df[col], kde=True, color="orange")
             plt.title(f"Histogram - {col}")
 
             safe_name = sanitize_filename(col)
@@ -66,7 +66,7 @@ def generate_eda(df, save_dir, summary_path):
     if len(numeric_cols) > 1:
         try:
             plt.figure(figsize=(10, 8))
-            sns.heatmap(df[numeric_cols].corr(), annot=False, cmap="coolwarm")
+            sns.heatmap(df[numeric_cols].corr(), annot=False, cmap="Oranges")
             heatmap_path = os.path.join(save_dir, "correlation_heatmap.png")
             plt.savefig(heatmap_path, bbox_inches="tight")
             plt.close()
