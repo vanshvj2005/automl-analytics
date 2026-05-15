@@ -20,7 +20,7 @@ The platform bridges the gap between raw data and actionable intelligence, deliv
 * **Explainable AI (XAI)**: Integrated **SHAP** and Feature Importance analysis to provide transparency into model decision-making.
 * **Experiment Tracking**: A RAG-inspired memory system that stores meta-features and performance metrics to improve future model recommendations.
 
-### 💻 User-Friendly Interface
+### User-Friendly Interface
 * **Modern Web UI**: Responsive dashboard built with Flask and vanilla HTML/JS/Tailwind.
 * **Seamless Workflow**: One-click pipeline execution with live status updates.
 * **Centralized Results**: Interactive leaderboard, downloadable PDF reports, and localized storage indexed by unique `run_id`.
@@ -29,8 +29,10 @@ The platform bridges the gap between raw data and actionable intelligence, deliv
 
 ## Website Overview
 
-<img width="1849" height="1080" alt="automl" src="https://github.com/user-attachments/assets/ef4c1a21-de7d-4c4c-963f-e5620c73596b" />
-
+<img width="1900" height="1002" alt="automl1" src="https://github.com/user-attachments/assets/c56c6789-ee5f-471c-afa9-bbf4f7ee078f" />
+<img width="1895" height="1064" alt="autom2" src="https://github.com/user-attachments/assets/75dcd026-80fc-45a1-97ef-2061c5788dcb" />
+<img width="1829" height="972" alt="automl3" src="https://github.com/user-attachments/assets/bc79ff44-c8b0-4b18-980e-6c5e82c72b36" />
+<img width="1849" height="971" alt="automl4" src="https://github.com/user-attachments/assets/9636e199-bb8b-4437-9f18-366387ad2411" />
 
 ---
 
