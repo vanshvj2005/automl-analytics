@@ -492,6 +492,10 @@
     setTarget,
     runPipeline,
     isProcessing,
+    globalStatus,
+    errorMessage,
+    failedStage,
+    setGlobalStatus,
     logs,
     activeTab,
     setActiveTab,
@@ -642,6 +646,32 @@
           {logs[logs.length - 1]}
         </p>
       </div>
+    ) : globalStatus === "FAILED" ? (
+      /* Failure State */
+      <div className="h-full flex flex-col items-center justify-center text-center p-6">
+        <div className="glass-card p-10 border border-red-200 max-w-xl shadow-2xl">
+          <div className="w-16 h-16 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mx-auto mb-6">
+            <EraserIcon className="w-8 h-8 text-red-600 opacity-90" />
+          </div>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-red-600 font-bold block mb-2">
+            Pipeline Alert // {failedStage || "Execution Error"}
+          </span>
+          <h3 className="text-2xl font-display text-[#1a1c1c] font-bold mb-3">
+            {failedStage ? `${failedStage} Failed` : "Pipeline Execution Failed"}
+          </h3>
+          <div className="text-[#494644] font-mono text-xs leading-relaxed mb-6 bg-red-50/80 p-4 rounded-md border border-red-200 text-left break-words">
+            {errorMessage || logs[logs.length - 1] || "The pipeline encountered an error during execution."}
+          </div>
+          <button
+            onClick={() => {
+              if (setGlobalStatus) setGlobalStatus("IDLE");
+            }}
+            className="px-8 py-3 bg-[#1a1c1c] text-white font-mono text-xs tracking-widest uppercase hover:bg-[#EA580C] transition-all rounded-sm shadow-md active:scale-95"
+          >
+            Acknowledge & Try Again
+          </button>
+        </div>
+      </div>
     ) : logs.length <= 1 ? (
       /* Empty State */
       <div className="h-full flex flex-col items-center justify-center text-center">
@@ -676,7 +706,16 @@
                         src={plot}
                         alt={`EDA Plot ${index + 1}`}
                         className="w-full rounded-lg"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          if (e.target.nextSibling) {
+                            e.target.nextSibling.style.display = "block";
+                          }
+                        }}
                       />
+                      <div style={{ display: "none" }} className="p-4 text-center font-mono text-xs text-[#736E67]">
+                        Unable to load image at {plot}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -690,7 +729,7 @@
                       No EDA Plots Available
                     </h4>
                     <p className="text-[#736E67] text-sm">
-                      The pipeline did not generate any exploratory plots.
+                      EDA completed successfully, but no numeric distribution plots or correlation heatmaps were generated for this dataset.
                     </p>
                   </div>
                 </div>
@@ -702,78 +741,148 @@
         {/* ===================== METRICS TAB ===================== */}
         {activeTab === "metrics" && (
           <div className="space-y-12">
-            {/* Metric Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white border border-[#EAE6DF] p-8 text-center rounded-sm">
-                <p className="font-mono text-[10px] text-[#736E67] uppercase tracking-widest mb-2">
-                  R² Score
-                </p>
-                <p className="text-4xl font-display font-bold text-[#1a1c1c]">
-                  {metrics?.r2 != null
-                    ? Number(metrics.r2).toFixed(4)
-                    : "--"}
-                </p>
-              </div>
+            {/* Metric Cards - Held-Out Test Evaluation */}
+            {metrics?.problemType === "classification" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white border border-[#EAE6DF] p-8 text-center rounded-sm">
+                  <p className="font-mono text-[10px] text-[#736E67] uppercase tracking-widest mb-2">
+                    Held-Out Test Accuracy
+                  </p>
+                  <p className="text-4xl font-display font-bold text-[#EA580C]">
+                    {metrics?.accuracy != null
+                      ? Number(metrics.accuracy).toFixed(4)
+                      : "--"}
+                  </p>
+                  <p className="font-mono text-[9px] text-[#736E67] mt-2">
+                    Evaluated on 20% holdout split
+                  </p>
+                </div>
 
-              <div className="bg-white border border-[#EAE6DF] p-8 text-center rounded-sm">
-                <p className="font-mono text-[10px] text-[#736E67] uppercase tracking-widest mb-2">
-                  RMSE
-                </p>
-                <p className="text-4xl font-display font-bold text-[#1a1c1c]">
-                  {metrics?.rmse != null
-                    ? Number(metrics.rmse).toFixed(4)
-                    : "--"}
-                </p>
+                <div className="bg-white border border-[#EAE6DF] p-8 text-center rounded-sm">
+                  <p className="font-mono text-[10px] text-[#736E67] uppercase tracking-widest mb-2">
+                    Champion CV Accuracy
+                  </p>
+                  <p className="text-4xl font-display font-bold text-[#1a1c1c]">
+                    {leaderboard && leaderboard.length > 0 && leaderboard[0].cv_score != null
+                      ? Number(leaderboard[0].cv_score).toFixed(4)
+                      : "--"}
+                  </p>
+                  <p className="font-mono text-[9px] text-[#736E67] mt-2">
+                    Mean out-of-fold validation score
+                  </p>
+                </div>
               </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white border border-[#EAE6DF] p-8 text-center rounded-sm">
+                  <p className="font-mono text-[10px] text-[#736E67] uppercase tracking-widest mb-2">
+                    Held-Out Test R² Score
+                  </p>
+                  <p className="text-4xl font-display font-bold text-[#EA580C]">
+                    {metrics?.r2 != null
+                      ? Number(metrics.r2).toFixed(4)
+                      : "--"}
+                  </p>
+                  <p className="font-mono text-[9px] text-[#736E67] mt-2">
+                    Evaluated on 20% holdout split
+                  </p>
+                </div>
 
-              <div className="bg-white border border-[#EAE6DF] p-8 text-center rounded-sm">
-                <p className="font-mono text-[10px] text-[#736E67] uppercase tracking-widest mb-2">
-                  MAE
-                </p>
-                <p className="text-4xl font-display font-bold text-[#1a1c1c]">
-                  {metrics?.mae != null
-                    ? Number(metrics.mae).toFixed(4)
-                    : "--"}
-                </p>
+                <div className="bg-white border border-[#EAE6DF] p-8 text-center rounded-sm">
+                  <p className="font-mono text-[10px] text-[#736E67] uppercase tracking-widest mb-2">
+                    Held-Out Test RMSE
+                  </p>
+                  <p className="text-4xl font-display font-bold text-[#1a1c1c]">
+                    {metrics?.rmse != null
+                      ? Number(metrics.rmse).toFixed(4)
+                      : "--"}
+                  </p>
+                  <p className="font-mono text-[9px] text-[#736E67] mt-2">
+                    Root Mean Squared Error
+                  </p>
+                </div>
+
+                <div className="bg-white border border-[#EAE6DF] p-8 text-center rounded-sm">
+                  <p className="font-mono text-[10px] text-[#736E67] uppercase tracking-widest mb-2">
+                    Held-Out Test MAE
+                  </p>
+                  <p className="text-4xl font-display font-bold text-[#1a1c1c]">
+                    {metrics?.mae != null
+                      ? Number(metrics.mae).toFixed(4)
+                      : "--"}
+                  </p>
+                  <p className="font-mono text-[9px] text-[#736E67] mt-2">
+                    Mean Absolute Error
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Leaderboard */}
             {leaderboard && leaderboard.length > 0 && (
-  <div className="space-y-4">
-    <h3 className="text-2xl font-display font-medium text-[#1a1c1c]">
-      Model Leaderboard
-    </h3>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-2xl font-display font-medium text-[#1a1c1c]">
+                    Model Leaderboard (Cross-Validation: {metrics?.problemType === "classification" ? "Accuracy" : "R²"})
+                  </h3>
+                  <p className="text-xs text-[#736E67] mt-1">
+                    Candidate models ranked strictly by cross-validation performance on training folds. The champion is selected based on highest mean CV score.
+                  </p>
+                </div>
 
-    <div className="space-y-3">
-      {leaderboard.map((model, index) => {
-        const score =
-          model.test_score ??
-          model.cv_score ??
-          model.best_score;
+                <div className="space-y-3">
+                  {leaderboard.map((model, index) => {
+                    const score =
+                      model.cv_score ??
+                      model.best_score ??
+                      model.test_score;
 
-        return (
-          <div
-            key={index}
-            className="bg-white border border-[#EAE6DF] p-4 rounded-sm flex justify-between items-center"
-          >
-            {/* Model Name */}
-            <span className="font-medium text-[#1a1c1c]">
-              {model.model}
-            </span>
+                    return (
+                      <div
+                        key={index}
+                        className={`bg-white border p-4 rounded-sm flex justify-between items-center ${
+                          index === 0
+                            ? "border-[#EA580C]/40 bg-orange-50/20"
+                            : "border-[#EAE6DF]"
+                        }`}
+                      >
+                        {/* Model Name & Champion Tag */}
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-xs text-[#736E67] w-6">
+                            #{index + 1}
+                          </span>
+                          <span className="font-medium text-[#1a1c1c]">
+                            {model.model}
+                          </span>
+                          {index === 0 && (
+                            <span className="px-2 py-0.5 bg-[#EA580C] text-white text-[9px] font-mono uppercase tracking-wider rounded-xs">
+                              Selected Champion
+                            </span>
+                          )}
+                        </div>
 
-            {/* Cross-Validation Score */}
-            <span className="font-mono text-[#EA580C] font-bold">
-              {score !== undefined && score !== null
-                ? Number(score).toFixed(4)
-                : "--"}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  </div>
-)}
+                        {/* Cross-Validation Score with Std Deviation */}
+                        <div className="text-right">
+                          <span className="font-mono text-[#EA580C] font-bold text-base">
+                            {score !== undefined && score !== null
+                              ? Number(score).toFixed(4)
+                              : "--"}
+                          </span>
+                          {model.cv_std != null && (
+                            <span className="font-mono text-[10px] text-[#736E67] ml-2">
+                              ±{Number(model.cv_std).toFixed(4)}
+                            </span>
+                          )}
+                          <span className="font-mono text-[9px] text-[#736E67] block uppercase tracking-wider">
+                            CV Score
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* PDF Download */}
             {pdfLink && (
@@ -850,6 +959,9 @@
       runPipeline,
       isProcessing,
       globalStatus,
+      errorMessage,
+      failedStage,
+      setGlobalStatus,
       logs,
       activeTab,
       setActiveTab,
@@ -881,6 +993,10 @@
             setTarget={setTarget}
             runPipeline={runPipeline}
             isProcessing={isProcessing}
+            globalStatus={globalStatus}
+            errorMessage={errorMessage}
+            failedStage={failedStage}
+            setGlobalStatus={setGlobalStatus}
             logs={logs}
             activeTab={activeTab}
             setActiveTab={setActiveTab}

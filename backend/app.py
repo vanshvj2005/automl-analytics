@@ -5,11 +5,18 @@ sys.path.append(os.path.dirname(__file__))
 import uuid
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from services.utils import create_run_folder, update_status, read_status
+from services.utils import (
+    create_run_folder,
+    update_status,
+    read_status,
+    RUNS_DIR,
+    get_run_folder,
+    is_valid_uuid
+)
 from services.preprocessing import preprocess_dataset
 from services.eda_engine import generate_eda, load_csv_safely
 from concurrent.futures import ThreadPoolExecutor
-from services.models_engine import train_models
+from services.models_engine import train_models, detect_problem_type
 from services.evaluation_engine import evaluate_model
 from services.report_engine import generate_report
 from services.experiment_tracker import log_experiment
@@ -21,33 +28,32 @@ from services.pipeline_engine import analyze_dataset_complexity, recommend_pipel
 app = Flask(__name__, static_folder="static", static_url_path="")
 CORS(app)
 
-if not os.path.exists("runs"):
-    os.makedirs("runs")
+print("Serving runs directory from:", RUNS_DIR)
 
 executor = ThreadPoolExecutor(max_workers=2)
 
-from flask import send_from_directory
-
-BASE_DIR = Path(__file__).resolve().parent
-RUNS_DIR = BASE_DIR / "runs"
-print("Serving runs directory from:", RUNS_DIR)
-
 @app.route("/runs/<run_id>/evaluation/<path:filename>")
 def serve_eval_files(run_id, filename):
+    if not is_valid_uuid(run_id):
+        return jsonify({"error": "Invalid run_id"}), 400
     folder = RUNS_DIR / run_id / "evaluation"
-    return send_from_directory(folder, filename)
+    return send_from_directory(str(folder), filename)
 
 
 @app.route("/runs/<run_id>/eda_plots/<path:filename>")
 def serve_eda_files(run_id, filename):
+    if not is_valid_uuid(run_id):
+        return jsonify({"error": "Invalid run_id"}), 400
     folder = RUNS_DIR / run_id / "eda_plots"
-    return send_from_directory(folder, filename)
+    return send_from_directory(str(folder), filename)
 
 
 @app.route("/runs/<run_id>/<path:filename>")
 def serve_run_files(run_id, filename):
+    if not is_valid_uuid(run_id):
+        return jsonify({"error": "Invalid run_id"}), 400
     folder = RUNS_DIR / run_id
-    return send_from_directory(folder, filename)
+    return send_from_directory(str(folder), filename)
 
 # Health Check Route 
 @app.route("/")
@@ -104,7 +110,10 @@ def preprocess_route():
         run_id = data["run_id"]
         target = data["target"]
 
-        run_path = os.path.join("runs", run_id)
+        if not is_valid_uuid(run_id):
+            return jsonify({"error": "Invalid run_id"}), 400
+
+        run_path = str(get_run_folder(run_id))
 
         raw_path = os.path.join(run_path, "raw.csv")
         processed_path = os.path.join(run_path, "processed.csv")
@@ -131,6 +140,7 @@ def preprocess_route():
         }), 200
 
     except Exception as e:
+        update_status(run_id, f"preprocessing_failed: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
     
@@ -144,7 +154,11 @@ def eda_route():
             return jsonify({"error": "run_id is required"}), 400
 
         run_id = data["run_id"]
-        run_path = os.path.join("runs", run_id)
+
+        if not is_valid_uuid(run_id):
+            return jsonify({"error": "Invalid run_id"}), 400
+
+        run_path = str(get_run_folder(run_id))
 
         processed_path = os.path.join(run_path, "processed.csv")
         eda_dir = os.path.join(run_path, "eda_plots")
@@ -164,9 +178,24 @@ def eda_route():
             save_path=meta_path
         )
         
+        # Determine problem type if target is available from preprocessing summary
+        prep_summary_path = os.path.join(run_path, "preprocessing_summary.json")
+        target_name = None
+        if os.path.exists(prep_summary_path):
+            try:
+                with open(prep_summary_path, "r") as f:
+                    prep_summary = json.load(f)
+                    target_name = prep_summary.get("target_column")
+            except Exception:
+                pass
+
+        problem_type = "classification"
+        if target_name and target_name in df.columns:
+            problem_type = detect_problem_type(df[target_name])
+
         complexity = analyze_dataset_complexity(meta_features)
 
-        pipeline_recommendation = recommend_pipeline(complexity)
+        pipeline_recommendation = recommend_pipeline(complexity, problem_type=problem_type)
         
         pipeline_path = os.path.join(run_path, "pipeline_recommendation.json")
 
@@ -198,6 +227,7 @@ def eda_route():
         }), 200
 
     except Exception as e:
+        update_status(run_id, f"eda_failed: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
     
@@ -213,7 +243,10 @@ def train_route():
         run_id = data["run_id"]
         target = data["target"]
 
-        run_path = os.path.join("runs", run_id)
+        if not is_valid_uuid(run_id):
+            return jsonify({"error": "Invalid run_id"}), 400
+
+        run_path = str(get_run_folder(run_id))
         processed_path = os.path.join(run_path, "processed.csv")
         models_dir = os.path.join(run_path, "models")
 
@@ -257,7 +290,10 @@ def evaluate_route():
         run_id = data["run_id"]
         target = data["target"]
 
-        run_path = os.path.join("runs", run_id)
+        if not is_valid_uuid(run_id):
+            return jsonify({"error": "Invalid run_id"}), 400
+
+        run_path = str(get_run_folder(run_id))
         processed_path = os.path.join(run_path, "processed.csv")
         models_dir = os.path.join(run_path, "models")
         eval_dir = os.path.join(run_path, "evaluation")
@@ -323,7 +359,11 @@ def report_route():
             return jsonify({"error": "run_id is required"}), 400
 
         run_id = data["run_id"]
-        run_path = os.path.join("runs", run_id)
+
+        if not is_valid_uuid(run_id):
+            return jsonify({"error": "Invalid run_id"}), 400
+
+        run_path = str(get_run_folder(run_id))
         output_file = os.path.join(run_path, "final_report.pdf")
 
         update_status(run_id, "report_generating")
@@ -335,7 +375,7 @@ def report_route():
         return jsonify({
             "message": "Report generated",
             "run_id": run_id,
-            "report_path": output_file
+            "report_path": f"/runs/{run_id}/final_report.pdf"
         }), 200
 
     except Exception as e:
@@ -345,7 +385,10 @@ def report_route():
 # Status Route
 @app.route("/status/<run_id>", methods=["GET"])
 def status_route(run_id):
-    run_path = os.path.join("runs", run_id)
+    if not is_valid_uuid(run_id):
+        return jsonify({"error": "Invalid run_id"}), 400
+
+    run_path = str(get_run_folder(run_id))
     status_file = os.path.join(run_path, "status.json")
 
     if not os.path.exists(status_file):

@@ -8,3 +8,5 @@ matplotlib==3.8.4
 seaborn==0.13.2
 joblib==1.4.2
 reportlab==4.2.0
+optuna>=3.6.0
+shap>=0.45.0

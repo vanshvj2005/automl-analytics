@@ -1,5 +1,4 @@
 def analyze_dataset_complexity(meta_features):
-
     complexity = {}
 
     n_samples = meta_features.get("n_samples", 0)
@@ -36,20 +35,25 @@ def analyze_dataset_complexity(meta_features):
     return complexity
 
 
-def recommend_pipeline(complexity):
-
+def recommend_pipeline(complexity, problem_type="classification"):
     pipeline = {}
 
-    if complexity["dataset_size"] == "small":
-        pipeline["recommended_models"] = ["SVC", "LogisticRegression"]
-
-    elif complexity["dataset_size"] == "medium":
-        pipeline["recommended_models"] = ["RandomForestClassifier"]
-
+    if problem_type == "regression":
+        if complexity.get("dataset_size") == "small":
+            pipeline["recommended_models"] = ["LinearRegression", "RandomForestRegressor"]
+        elif complexity.get("dataset_size") == "medium":
+            pipeline["recommended_models"] = ["RandomForestRegressor", "GradientBoostingRegressor"]
+        else:
+            pipeline["recommended_models"] = ["XGBRegressor", "RandomForestRegressor"]
     else:
-        pipeline["recommended_models"] = ["XGBClassifier"]
+        if complexity.get("dataset_size") == "small":
+            pipeline["recommended_models"] = ["SVC", "LogisticRegression"]
+        elif complexity.get("dataset_size") == "medium":
+            pipeline["recommended_models"] = ["RandomForestClassifier", "GradientBoostingClassifier"]
+        else:
+            pipeline["recommended_models"] = ["XGBClassifier", "RandomForestClassifier"]
 
-    if complexity["dimensionality"] == "high":
+    if complexity.get("dimensionality") == "high":
         pipeline["feature_selection"] = True
     else:
         pipeline["feature_selection"] = False
