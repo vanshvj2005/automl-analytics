@@ -2,9 +2,7 @@
   import useAutoML from "./hooks/useAutoMl";
   import { 
     ChevronRight, 
-    ArrowRight,
     User,
-    ArrowLeft,
     UploadCloud,
     Target,
     PlayCircle,
@@ -19,7 +17,7 @@
     History as HistoryIcon
   } from "lucide-react";
 
-  import { useEffect, useState } from "react";
+  import { useState } from "react";
 
   const Navigation = ({ onStart, onHome, showHome }) => {
     return (
@@ -485,7 +483,6 @@
   };
 
   const AppInterface = ({
-    onHome,
     fileName,
     setSelectedFile,
     target,
@@ -908,7 +905,7 @@
             Object.values(evaluationPlots).filter(Boolean).length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {Object.entries(evaluationPlots)
-                  .filter(([_, value]) => value)
+                  .filter(([, value]) => value)
                   .map(([key, value], index) => (
                     <div key={index} className="gradient-border-shell">
                       <div className="glass-card border border-white p-6">

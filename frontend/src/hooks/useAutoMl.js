@@ -203,7 +203,10 @@ export function useAutoML() {
         body: JSON.stringify(payload),
       });
     } catch (networkErr) {
-      throw new Error(`Unable to reach backend at ${API}. ${networkErr.message}`);
+      throw new Error(
+        `Unable to reach backend at ${API}. ${networkErr.message}`,
+        { cause: networkErr }
+      );
     }
 
     if (!response.ok) {
@@ -267,7 +270,10 @@ export function useAutoML() {
           body: formData,
         });
       } catch (err) {
-        throw new Error(`Failed to connect to backend at ${API}/upload. Check that the backend server is running and CORS/network settings allow this request.`);
+        throw new Error(
+          `Failed to connect to backend at ${API}/upload. Check that the backend server is running and CORS/network settings allow this request.`,
+          { cause: err }
+        );
       }
 
       if (!uploadResponse.ok) {
@@ -342,7 +348,10 @@ export function useAutoML() {
         try {
           statusResponse = await fetch(`${API}/status/${currentRunId}`);
         } catch (pollErr) {
-          throw new Error(`Status check lost connection: ${pollErr.message}`);
+          throw new Error(
+            `Status check lost connection: ${pollErr.message}`,
+            { cause: pollErr }
+          );
         }
 
         if (!statusResponse.ok) {
