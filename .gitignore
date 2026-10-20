@@ -1,4 +1,32 @@
-runs/
-__pycache__/
+
+# Dependencies
+node_modules/
 frontend/node_modules/
 .venv/
+
+# Python virtual environment
+.venv/
+venv/
+
+# Frontend dependencies
+node_modules/
+frontend/node_modules/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Generated AutoML runs and model artifacts
+runs/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Vite cache and generated frontend build
+frontend/.vite/
+frontend/dist/
